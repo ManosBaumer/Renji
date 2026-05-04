@@ -1,17 +1,25 @@
 {
-  "name": "renji-app",
+  "name": "renji",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate-keywords": "tsx --env-file .env.local scripts/generate_keywords.ts",
+    "embed-keywords": "tsx --env-file .env.local scripts/embed_keywords.ts",
+    "cluster-keywords": "tsx --env-file .env.local scripts/cluster_keywords.ts",
+    "canonicalize": "tsx --env-file .env.local scripts/canonicalize.ts"
   },
   "dependencies": {
+    "@google/genai": "^1.51.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "groq-sdk": "^0.5.0",
     "next": "16.2.4",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -21,6 +29,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "tailwindcss": "^4",
+    "tsx": "^4.19.0",
     "typescript": "^5"
   }
 }
