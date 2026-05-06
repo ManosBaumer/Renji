@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { supabaseBrowser } from '@/lib/supabase-browser';
 
 interface AuthFormProps {
@@ -20,6 +21,8 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
   const [info, setInfo] = useState('');
 
+  const isSignup = mode === 'signup';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -29,7 +32,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     const supabase = supabaseBrowser();
 
     try {
-      if (mode === 'signup') {
+      if (isSignup) {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
@@ -38,10 +41,6 @@ export function AuthForm({ mode }: AuthFormProps) {
           },
         });
         if (error) throw error;
-
-        // Two cases:
-        //   1. Email confirmation enabled → user must check inbox first
-        //   2. Email confirmation disabled → session is set immediately
         if (data.session) {
           router.push(redirectTo);
           router.refresh();
@@ -64,96 +63,131 @@ export function AuthForm({ mode }: AuthFormProps) {
     }
   };
 
-  const isSignup = mode === 'signup';
+  const switchHref = isSignup
+    ? `/auth/login${redirectTo !== '/' ? `?next=${encodeURIComponent(redirectTo)}` : ''}`
+    : `/auth/signup${redirectTo !== '/' ? `?next=${encodeURIComponent(redirectTo)}` : ''}`;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4">
-      <div className="w-full max-w-sm">
-        {/* Brand */}
-        <Link href="/" className="block mb-8 text-center">
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-            renji<span className="text-indigo-600">.</span>pro
-          </h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            {isSignup ? 'Create your account' : 'Welcome back'}
-          </p>
-        </Link>
+    <>
+      <div className="bg-orb-auth" aria-hidden="true" />
+      <div className="grain-auth" aria-hidden="true" />
 
-        {/* Form */}
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm space-y-4"
-        >
-          <div>
-            <label className="block text-xs font-medium text-zinc-700 mb-1.5">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              autoComplete="email"
-              autoFocus
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
-            />
+      <div className="r-auth-page">
+        {/* LEFT — brand + pitch over gradient */}
+        <aside className="r-auth-left">
+          <Link href="/" className="r-auth-brand">
+            <Image src="/typeface-logo.png" alt="Renji" width={160} height={40} priority />
+          </Link>
+
+          <div className="r-pitch">
+            <h2>
+              {isSignup ? (
+                <>Stop guessing. Start with data.</>
+              ) : (
+                <>
+                  Validate before
+                  <br />
+                  you build.
+                </>
+              )}
+            </h2>
+            <p>
+              {isSignup
+                ? "Renji turns your idea into a structured analysis backed by real conversations from across the web. Your saved analyses live forever."
+                : 'Real signals from Hacker News, Reddit, GitHub and more — quietly scored into demand, competition and opportunity.'}
+            </p>
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-zinc-700 mb-1.5">Password</label>
-            <input
-              type="password"
-              required
-              minLength={isSignup ? 8 : 1}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={isSignup ? 'At least 8 characters' : 'Your password'}
-              autoComplete={isSignup ? 'new-password' : 'current-password'}
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
-            />
+          <div className="r-auth-footnote">RENJI · DATA-DRIVEN VALIDATION</div>
+        </aside>
+
+        {/* RIGHT — form */}
+        <main className="r-auth-right">
+          <div className="r-form-wrap">
+            <div className="r-form-eyebrow">
+              Account · {isSignup ? 'Create' : 'Sign in'}
+            </div>
+            <h1 className="r-form-title">{isSignup ? 'Start validating.' : 'Welcome back.'}</h1>
+            <p className="r-form-lede">
+              {isSignup
+                ? 'Free while in beta — no credit card, no team seats, just your ideas and the data.'
+                : 'Pick up where you left off — your saved analyses are waiting.'}
+            </p>
+
+            <form className="r-form" onSubmit={handleSubmit}>
+              <div className="r-form-field">
+                <label htmlFor="auth-email">Email</label>
+                <input
+                  id="auth-email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  autoFocus
+                />
+              </div>
+
+              <div className="r-form-field">
+                <label htmlFor="auth-password">Password</label>
+                <input
+                  id="auth-password"
+                  type="password"
+                  required
+                  minLength={isSignup ? 8 : 1}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={isSignup ? 'At least 8 characters' : 'Your password'}
+                  autoComplete={isSignup ? 'new-password' : 'current-password'}
+                />
+              </div>
+
+              {isSignup && (
+                <p className="r-form-fineprint">
+                  By creating an account you agree to Renji&apos;s terms and privacy policy.
+                </p>
+              )}
+
+              {error && <div className="r-form-error">{error}</div>}
+              {info && <div className="r-form-info">{info}</div>}
+
+              <button
+                type="submit"
+                className="r-form-submit"
+                disabled={loading || !email || !password}
+              >
+                {loading
+                  ? isSignup
+                    ? 'Creating account…'
+                    : 'Signing in…'
+                  : isSignup
+                    ? 'Create account'
+                    : 'Sign in'}
+                {!loading && (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                )}
+              </button>
+            </form>
+
+            <p className="r-form-switch">
+              {isSignup ? (
+                <>
+                  Already have an account?{' '}
+                  <Link href={switchHref}>Sign in →</Link>
+                </>
+              ) : (
+                <>
+                  No account yet?{' '}
+                  <Link href={switchHref}>Create one →</Link>
+                </>
+              )}
+            </p>
           </div>
-
-          {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
-              {error}
-            </div>
-          )}
-
-          {info && (
-            <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-700">
-              {info}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || !email || !password}
-            className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {loading
-              ? isSignup ? 'Creating account…' : 'Signing in…'
-              : isSignup ? 'Create account' : 'Sign in'}
-          </button>
-        </form>
-
-        {/* Switch link */}
-        <p className="mt-4 text-center text-xs text-zinc-500">
-          {isSignup ? (
-            <>
-              Already have an account?{' '}
-              <Link href={`/auth/login${redirectTo !== '/' ? `?next=${encodeURIComponent(redirectTo)}` : ''}`} className="font-medium text-indigo-600 hover:underline">
-                Sign in
-              </Link>
-            </>
-          ) : (
-            <>
-              No account yet?{' '}
-              <Link href={`/auth/signup${redirectTo !== '/' ? `?next=${encodeURIComponent(redirectTo)}` : ''}`} className="font-medium text-indigo-600 hover:underline">
-                Create one
-              </Link>
-            </>
-          )}
-        </p>
+        </main>
       </div>
-    </div>
+    </>
   );
 }
