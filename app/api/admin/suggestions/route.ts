@@ -8,9 +8,16 @@ export const runtime = 'nodejs';
 
 function isAuthorized(request: NextRequest): boolean {
   const secret = process.env.ADMIN_SECRET;
-  if (!secret) return false; // require secret to be set
+  if (!secret || secret === 'change-me') return false;
+
+  // Accept Bearer token (curl/API) or httpOnly cookie (admin UI)
   const auth = request.headers.get('authorization');
-  return auth === `Bearer ${secret}`;
+  if (auth === `Bearer ${secret}`) return true;
+
+  const cookie = request.cookies.get('admin_token')?.value;
+  if (cookie === secret) return true;
+
+  return false;
 }
 
 function unauthorized() {
@@ -47,25 +54,19 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ suggestions: data, total: count, limit, offset });
 }
 
-// ─── PATCH /api/admin/suggestions/:id ─────────────────────────────────────────
-// Body: { action: 'reject' }
-//       { action: 'approve' }                      → creates new canonical keyword
-//       { action: 'merge', keyword_id: '<uuid>' }  → adds as alias to existing keyword
+// ─── PATCH /api/admin/suggestions ─────────────────────────────────────────────
+// Body: { id, action: 'reject' }
+//       { id, action: 'approve' }                      → creates new canonical keyword
+//       { id, action: 'merge', keyword_id: '<uuid>' }  → adds as alias to existing keyword
 
 const ActionSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('reject') }),
-  z.object({ action: z.literal('approve') }),
-  z.object({ action: z.literal('merge'), keyword_id: z.string().uuid() }),
+  z.object({ id: z.string().uuid(), action: z.literal('reject') }),
+  z.object({ id: z.string().uuid(), action: z.literal('approve') }),
+  z.object({ id: z.string().uuid(), action: z.literal('merge'), keyword_id: z.string().uuid() }),
 ]);
 
 export async function PATCH(request: NextRequest) {
   if (!isAuthorized(request)) return unauthorized();
-
-  // Extract id from URL
-  const id = request.nextUrl.pathname.split('/').at(-1);
-  if (!id) {
-    return NextResponse.json({ error: 'Missing suggestion id in URL' }, { status: 400 });
-  }
 
   let body: unknown;
   try { body = await request.json(); }
@@ -78,6 +79,8 @@ export async function PATCH(request: NextRequest) {
       { status: 400 }
     );
   }
+
+  const { id, action } = parsed.data;
 
   // Fetch the suggestion
   const { data: suggestion, error: fetchErr } = await supabaseAdmin
@@ -95,8 +98,6 @@ export async function PATCH(request: NextRequest) {
       { status: 409 }
     );
   }
-
-  const { action } = parsed.data;
 
   // ── reject ──
   if (action === 'reject') {

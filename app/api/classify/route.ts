@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { classifyIdea } from '@/lib/classify';
 import { computeFlags, persistSuggestions } from '@/lib/flag';
+import { getCurrentUser } from '@/lib/supabase-server';
 
 const RequestSchema = z.object({
   idea: z.string().min(3).max(2000),
@@ -11,6 +12,14 @@ export const runtime = 'nodejs';
 export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Authentication required.' },
+      { status: 401 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
