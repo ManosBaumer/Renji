@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabaseBrowser } from '@/lib/supabase-browser';
+import { GrainCanvas } from '@/components/GrainCanvas';
 
 interface AuthFormProps {
   mode: 'signup' | 'login';
@@ -69,26 +70,28 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   return (
     <>
-      <div className="bg-orb-auth" aria-hidden="true" />
-      <div className="grain-auth" aria-hidden="true" />
+      <div className="bg-orb-auth-halo" aria-hidden />
+      <div className="bg-orb-auth" aria-hidden />
+      <GrainCanvas />
 
       <div className="r-auth-page">
-        {/* LEFT — brand + pitch over gradient */}
         <aside className="r-auth-left">
-          <Link href="/" className="r-auth-brand">
-            <Image src="/typeface-logo.png" alt="Renji" width={160} height={40} priority />
+          <Link href="/" className="r-auth-brand r-auth-brand--hero r-auth-brand--above-pitch">
+            <Image
+              src="/typeface-logo.png"
+              alt="Renji"
+              width={560}
+              height={140}
+              priority
+              sizes="(max-width: 860px) 52vw, 28vw"
+            />
           </Link>
-
-          <div className="r-pitch">
+          <div className={`r-pitch r-pitch--below${isSignup ? '' : ' r-pitch--login-head'}`}>
             <h2>
               {isSignup ? (
                 <>Stop guessing. Start with data.</>
               ) : (
-                <>
-                  Validate before
-                  <br />
-                  you build.
-                </>
+                <>Validate before you build.</>
               )}
             </h2>
             <p>
@@ -97,8 +100,6 @@ export function AuthForm({ mode }: AuthFormProps) {
                 : 'Real signals from Hacker News, Reddit, GitHub and more — quietly scored into demand, competition and opportunity.'}
             </p>
           </div>
-
-          <div className="r-auth-footnote">RENJI · DATA-DRIVEN VALIDATION</div>
         </aside>
 
         {/* RIGHT — form */}

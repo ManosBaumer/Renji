@@ -168,12 +168,6 @@ export function HeroForm({ onSubmit, onAdvancedSubmit, loading, error }: HeroFor
     onAdvancedSubmit(classification);
   };
 
-  const handleExample = (text: string) => {
-    setIdea(text);
-    setMode('quick');
-    requestAnimationFrame(() => textareaRef.current?.focus());
-  };
-
   const quickValid = idea.trim().length >= 10;
   const structuredValid = !!(advanced.audience && advanced.problem && advanced.solution);
   const quickPlaceholder = mode === 'quick' && idea.trim().length === 0 ? animatedPlaceholder : '';
@@ -356,21 +350,6 @@ export function HeroForm({ onSubmit, onAdvancedSubmit, loading, error }: HeroFor
           </div>
           {error && <div className="r-prompt-error">{error}</div>}
         </form>
-      )}
-
-      {mode === 'quick' && (
-        <div className="r-examples">
-          {EXAMPLES.map((ex) => (
-            <button
-              key={ex.label}
-              type="button"
-              className="r-ex-chip"
-              onClick={() => handleExample(ex.text)}
-            >
-              {ex.label}
-            </button>
-          ))}
-        </div>
       )}
     </div>
   );

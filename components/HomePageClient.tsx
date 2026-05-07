@@ -8,6 +8,8 @@ import type { AnalysisResult } from '@/lib/analyze';
 import type { Classification } from '@/lib/classify';
 import { HeroForm } from '@/components/HeroForm';
 import { ResultsView } from '@/components/ResultsView';
+import { GrainCanvas } from '@/components/GrainCanvas';
+import DarkVeil from '@/components/DarkVeil';
 
 type Stage = 'idle' | 'analyzing' | 'results' | 'error';
 
@@ -173,7 +175,7 @@ export function HomePageClient({ userEmail }: Props) {
     <>
       <BgDecor variant="landing" />
 
-      <div className="r-page">
+      <div className="r-page r-page--veil">
         <div className="r-hero-screen">
           <TopNav
             activePage="analyze"
@@ -216,12 +218,21 @@ function BgDecor({ variant }: { variant: 'landing' | 'dashboard' }) {
   if (variant === 'landing') {
     return (
       <>
-        <div className="bg-stage" aria-hidden="true">
-          <div className="bg-orb" />
-          <div className="bg-orb-2" />
+        <div className="bg-darkveil-shell" aria-hidden="true">
+          <div className="bg-darkveil-blur">
+            {/* React Bits Dark Veil — keep shader noise off; GrainCanvas owns grain */}
+            {/* YIQ hueRotate: +62 pulled the CPPN toward yellow–green; burgundy needs the other direction */}
+            <DarkVeil
+              hueShift={54}
+              noiseIntensity={0}
+              scanlineIntensity={0}
+              speed={0.42}
+              warpAmount={0.1}
+              resolutionScale={1}
+            />
+          </div>
         </div>
-        <div className="grain" aria-hidden="true" />
-        <div className="grain-soft" aria-hidden="true" />
+        <GrainCanvas />
       </>
     );
   }

@@ -25,7 +25,7 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Renji — validate your idea with real data',
+  title: 'Renji',
   description:
     'Real signals from Hacker News, Reddit, GitHub and more — quietly scored into demand, competition and opportunity.',
   openGraph: {
