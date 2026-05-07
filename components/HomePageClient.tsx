@@ -188,11 +188,6 @@ export function HomePageClient({ userEmail }: Props) {
           />
 
           <main className="r-hero">
-            <div className="r-eyebrow">
-              <span className="r-dot" />
-              Real-data validation · live
-            </div>
-
             <h1 className="r-headline">
               <span className="r-line">Validate your idea</span>
               <span className="r-line r-muted">before you build it.</span>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Classification } from '@/lib/classify';
 
 interface HeroFormProps {
@@ -31,11 +31,107 @@ const ArrowIcon = () => (
   </svg>
 );
 
+interface SpeechRecognitionAlternativeLike {
+  transcript: string;
+}
+
+interface SpeechRecognitionResultLike {
+  isFinal: boolean;
+  [index: number]: SpeechRecognitionAlternativeLike;
+}
+
+interface SpeechRecognitionEventLike {
+  resultIndex: number;
+  results: ArrayLike<SpeechRecognitionResultLike>;
+}
+
+interface SpeechRecognitionLike {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onstart: (() => void) | null;
+  onend: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
+
+const MicIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" />
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+    <path d="M12 19v3" />
+  </svg>
+);
+
 export function HeroForm({ onSubmit, onAdvancedSubmit, loading, error }: HeroFormProps) {
   const [mode, setMode] = useState<'quick' | 'structured'>('quick');
   const [idea, setIdea] = useState('');
   const [advanced, setAdvanced] = useState(EMPTY_ADVANCED);
+  const [animatedPlaceholder, setAnimatedPlaceholder] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [speechError, setSpeechError] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const speechBaseRef = useRef('');
+  const speechFinalRef = useRef('');
+
+  useEffect(() => {
+    return () => recognitionRef.current?.stop();
+  }, []);
+
+  useEffect(() => {
+    if (mode !== 'quick' || idea.trim().length > 0) return;
+
+    const lines = EXAMPLES.map((ex) => `${ex.text}`);
+    let timeoutId: number | undefined;
+    let lineIndex = 0;
+    let charIndex = 0;
+    let deleting = false;
+    let paused = false;
+
+    const tick = () => {
+      const line = lines[lineIndex];
+      if (!deleting) {
+        charIndex += 1;
+        setAnimatedPlaceholder(line.slice(0, charIndex));
+        if (charIndex >= line.length) {
+          deleting = true;
+          paused = true;
+        }
+      } else {
+        charIndex -= 1;
+        setAnimatedPlaceholder(line.slice(0, Math.max(charIndex, 0)));
+        if (charIndex <= 0) {
+          deleting = false;
+          paused = false;
+          lineIndex = (lineIndex + 1) % lines.length;
+        }
+      }
+
+      const delay = paused ? 1150 : deleting ? 18 : 34;
+      if (paused) paused = false;
+      timeoutId = window.setTimeout(tick, delay);
+    };
+
+    timeoutId = window.setTimeout(tick, 340);
+    return () => window.clearTimeout(timeoutId);
+  }, [mode, idea]);
+
+  useEffect(() => {
+    if (mode !== 'quick') return;
+    const el = textareaRef.current;
+    if (!el) return;
+    const maxHeight = 172;
+    el.style.height = '0px';
+    const nextHeight = Math.min(el.scrollHeight, maxHeight);
+    el.style.height = `${nextHeight}px`;
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }, [idea, mode]);
 
   // ── Quick submit ──
   const handleQuickSubmit = (e: React.FormEvent) => {
@@ -80,6 +176,79 @@ export function HeroForm({ onSubmit, onAdvancedSubmit, loading, error }: HeroFor
 
   const quickValid = idea.trim().length >= 10;
   const structuredValid = !!(advanced.audience && advanced.problem && advanced.solution);
+  const quickPlaceholder = mode === 'quick' && idea.trim().length === 0 ? animatedPlaceholder : '';
+
+  const startListening = () => {
+    if (mode !== 'quick') return;
+    const w = window as Window & {
+      SpeechRecognition?: SpeechRecognitionCtor;
+      webkitSpeechRecognition?: SpeechRecognitionCtor;
+    };
+    const Recognition = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!Recognition) return;
+
+    if (!recognitionRef.current) {
+      const recognition = new Recognition();
+      recognition.lang = 'en-US';
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setSpeechError('');
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event) => {
+        let finalChunk = '';
+        let interimChunk = '';
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          const segment = event.results[i]?.[0]?.transcript ?? '';
+          if (event.results[i].isFinal) finalChunk += `${segment} `;
+          else interimChunk += `${segment} `;
+        }
+        if (finalChunk) speechFinalRef.current += finalChunk;
+
+        const next = [speechBaseRef.current, speechFinalRef.current, interimChunk]
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        setIdea(next);
+      };
+
+      recognition.onerror = (event) => {
+        const message = event.error === 'not-allowed'
+          ? 'Microphone permission denied. Please allow microphone access and try again.'
+          : `Speech recognition error: ${event.error}`;
+        setSpeechError(message);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => setIsListening(false);
+      recognitionRef.current = recognition;
+    }
+
+    speechBaseRef.current = idea.trim();
+    speechFinalRef.current = '';
+    recognitionRef.current.start();
+  };
+
+  const toggleListening = () => {
+    if (loading) return;
+    const w = window as Window & {
+      SpeechRecognition?: SpeechRecognitionCtor;
+      webkitSpeechRecognition?: SpeechRecognitionCtor;
+    };
+    if (!w.SpeechRecognition && !w.webkitSpeechRecognition) {
+      setSpeechError('Speech-to-text is not supported in this browser. Try Chrome or Edge.');
+      return;
+    }
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    startListening();
+  };
 
   return (
     <div className="r-prompt-wrap">
@@ -110,22 +279,20 @@ export function HeroForm({ onSubmit, onAdvancedSubmit, loading, error }: HeroFor
             ref={textareaRef}
             value={idea}
             onChange={(e) => setIdea(e.target.value)}
-            rows={3}
-            placeholder="Describe your startup idea — e.g. an AI tool that helps remote teams run async standups…"
+            rows={1}
+            placeholder={quickPlaceholder}
             disabled={loading}
           />
-          {error && <div className="r-prompt-error">{error}</div>}
-          <div className="r-prompt-foot">
-            <div className="r-foot-left">
-              <span className="r-chip" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                </svg>
-                Idea
-              </span>
-              <span className="r-foot-divider">·</span>
-              <span>Powered by 6 data sources</span>
-            </div>
+          <div className="r-prompt-action">
+            <button
+              type="button"
+              className={`r-mic${isListening ? ' is-listening' : ''}`}
+              aria-label={isListening ? 'Stop dictation' : 'Start dictation'}
+              onClick={toggleListening}
+              disabled={loading}
+            >
+              <MicIcon />
+            </button>
             <button
               type="submit"
               className="r-send"
@@ -135,6 +302,8 @@ export function HeroForm({ onSubmit, onAdvancedSubmit, loading, error }: HeroFor
               <ArrowIcon />
             </button>
           </div>
+          {error && <div className="r-prompt-error">{error}</div>}
+          {speechError && <div className="r-prompt-error">{speechError}</div>}
         </form>
       )}
 
@@ -168,30 +337,24 @@ export function HeroForm({ onSubmit, onAdvancedSubmit, loading, error }: HeroFor
               value={advanced.industry}
               onChange={(v) => setAdvanced((p) => ({ ...p, industry: v }))}
             />
-            <StructField
-              full
-              label="Keywords"
-              placeholder="invoicing, automation, freelancers, payments"
-              value={advanced.keywords}
-              onChange={(v) => setAdvanced((p) => ({ ...p, keywords: v }))}
-            />
+            <div className="r-structured-keywords-row">
+              <StructField
+                label="Keywords"
+                placeholder="invoicing, automation, freelancers, payments (separate keywords with commas)"
+                value={advanced.keywords}
+                onChange={(v) => setAdvanced((p) => ({ ...p, keywords: v }))}
+              />
+              <button
+                type="submit"
+                className="r-send"
+                aria-label="Analyze"
+                disabled={!structuredValid || loading}
+              >
+                <ArrowIcon />
+              </button>
+            </div>
           </div>
           {error && <div className="r-prompt-error">{error}</div>}
-          <div className="r-prompt-foot">
-            <div className="r-foot-left">
-              <span style={{ color: 'rgba(255,255,255,.45)' }}>3 fields required</span>
-              <span className="r-foot-divider">·</span>
-              <span>Skips classification — uses your inputs verbatim</span>
-            </div>
-            <button
-              type="submit"
-              className="r-send"
-              aria-label="Analyze"
-              disabled={!structuredValid || loading}
-            >
-              <ArrowIcon />
-            </button>
-          </div>
         </form>
       )}
 
