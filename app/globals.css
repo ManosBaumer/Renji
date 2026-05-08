@@ -603,39 +603,100 @@ body {
   width: min(720px, 92vw);
 }
 
-.r-mode-tabs {
+.r-mode-dd {
+  position: relative;
   display: inline-flex;
-  padding: 4px;
-  background: rgba(20, 18, 15, 0.55);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  border-radius: 999px;
-  margin: 0 auto 14px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
 }
 
-.r-mode-tabs button {
+.r-mode-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(20, 18, 15, 0.56);
+  backdrop-filter: blur(18px) saturate(145%);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 8px 20px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.r-mode-seg-current,
+.r-mode-seg-option {
+  all: unset;
+  box-sizing: border-box;
   appearance: none;
-  border: 0;
+  -webkit-appearance: none;
+  border: 0 solid transparent;
   background: transparent;
-  cursor: pointer;
-  color: rgba(255, 255, 255, 0.65);
-  font: 500 12px/1 var(--font-sans);
-  letter-spacing: 0.06em;
-  padding: 9px 18px;
-  border-radius: 999px;
-  transition: 0.2s;
-}
-
-.r-mode-tabs button:hover {
   color: #fff;
+  font: 500 12px/1 var(--font-sans);
+  letter-spacing: 0.04em;
+  padding: 9px 12px;
+  min-width: 0;
+  width: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
 }
 
-.r-mode-tabs button.active {
-  background: rgba(255, 255, 255, 0.95);
-  color: #1a1814;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+.r-mode-seg-current {
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.r-mode-seg-current svg,
+.r-mode-seg-option svg {
+  width: 13px;
+  height: 12px;
+  flex: 0 0 auto;
+  opacity: 0.92;
+}
+
+.r-mode-seg-option {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding-left: 0;
+  padding-right: 0;
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  transition:
+    max-width 0.2s ease,
+    opacity 0.16s ease,
+    padding 0.2s ease,
+    background 0.16s ease;
+}
+
+.r-mode-dd.is-open .r-mode-seg-option {
+  max-width: 140px;
+  opacity: 1;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.r-mode-dd.is-open .r-mode-seg {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 10px 24px rgba(0, 0, 0, 0.34);
+}
+
+.r-mode-seg-option:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.34);
+}
+
+.r-mode-seg-current:disabled,
+.r-mode-seg-option:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .r-prompt {
@@ -653,7 +714,7 @@ body {
   border-color: rgba(255, 255, 255, 0.22);
   box-shadow:
     0 0 0 4px rgba(255, 255, 255, 0.06),
-    0 30px 80px -20px rgba(0, 0, 0, 0.5);
+    0 30px 80px -20px rgba(159, 255, 196, 0.5);
 }
 
 .r-prompt textarea {
@@ -680,8 +741,42 @@ body {
   padding: 8px 14px 10px;
 }
 
+.r-prompt-action-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .r-prompt-action--end {
   justify-content: flex-end;
+}
+
+.r-structured-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px 12px;
+}
+
+.r-structured-footer-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.r-structured-note {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.64);
+  white-space: nowrap;
+}
+
+.r-structured-note .req {
+  color: var(--accent-2);
+  margin-right: 3px;
 }
 
 .r-mic {
@@ -778,7 +873,7 @@ body {
   font: 500 9.5px/1 var(--font-mono);
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.85);
   margin-bottom: 6px;
 }
 
@@ -806,22 +901,14 @@ body {
   grid-column: 1 / -1;
 }
 
-.r-structured-keywords-row {
-  grid-column: 1 / -1 !important;
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-}
-
-.r-structured-keywords-row .r-field {
-  margin: 0;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.r-structured-keywords-row .r-send {
+.r-structured-footer .r-send {
   flex: 0 0 auto;
-  margin-bottom: 2px;
+}
+
+/* Structured-only: keep mode switch less prominent than form fields */
+.r-structured-footer .r-mode-seg-current,
+.r-structured-footer .r-mode-seg-option {
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .r-prompt-error {
@@ -832,6 +919,59 @@ body {
   border: 1px solid rgba(239, 68, 68, 0.32);
   color: #fecaca;
   font-size: 12px;
+}
+
+.r-examples {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.r-example-chip {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(36, 32, 28, 0.7), rgba(20, 18, 15, 0.58));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 10px 24px rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.92);
+  font: 600 11px/1 var(--font-sans);
+  letter-spacing: 0.02em;
+  padding: 9px 12px;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.r-example-chip:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: linear-gradient(180deg, rgba(56, 49, 43, 0.76), rgba(28, 24, 21, 0.64));
+  border-color: rgba(255, 255, 255, 0.34);
+  color: #fff;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 14px 30px rgba(0, 0, 0, 0.28);
+}
+
+.r-example-chip:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.14),
+    0 10px 24px rgba(0, 0, 0, 0.24);
+}
+
+.r-example-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* ===================================================================== */

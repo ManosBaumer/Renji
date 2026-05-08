@@ -9,6 +9,7 @@ interface HeroFormProps {
   loading: boolean;
   error?: string;
 }
+type Mode = 'quick' | 'structured';
 
 const EXAMPLES = [
   { label: 'AI focus tool for students', text: 'An AI tool that helps students stay focused during online lectures' },
@@ -68,8 +69,23 @@ const MicIcon = () => (
   </svg>
 );
 
+const ModeIcon = ({ mode }: { mode: Mode }) => {
+  if (mode === 'quick') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+        <path d="M13 2L5 14h6l-1 8 8-12h-6l1-8z" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M4 6h16M7 12h10M10 18h4" />
+    </svg>
+  );
+};
+
 export function HeroForm({ onSubmit, onAdvancedSubmit, loading, error }: HeroFormProps) {
-  const [mode, setMode] = useState<'quick' | 'structured'>('quick');
+  const [mode, setMode] = useState<Mode>('quick');
   const [idea, setIdea] = useState('');
   const [advanced, setAdvanced] = useState(EMPTY_ADVANCED);
   const [animatedPlaceholder, setAnimatedPlaceholder] = useState('');
@@ -139,6 +155,14 @@ export function HeroForm({ onSubmit, onAdvancedSubmit, loading, error }: HeroFor
     const trimmed = idea.trim();
     if (trimmed.length < 10) return;
     onSubmit(trimmed);
+  };
+
+  const runExample = (text: string) => {
+    if (loading) return;
+    setIdea(text);
+    setMode('quick');
+    setSpeechError('');
+    onSubmit(text);
   };
 
   // ── Structured submit ──
@@ -244,61 +268,64 @@ export function HeroForm({ onSubmit, onAdvancedSubmit, loading, error }: HeroFor
     startListening();
   };
 
+  const handleModeChange = (next: Mode) => {
+    setMode(next);
+  };
+
   return (
     <div className="r-prompt-wrap">
-      <div className="r-mode-tabs" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'quick'}
-          className={mode === 'quick' ? 'active' : ''}
-          onClick={() => setMode('quick')}
-        >
-          Quick analyze
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'structured'}
-          className={mode === 'structured' ? 'active' : ''}
-          onClick={() => setMode('structured')}
-        >
-          Structured search
-        </button>
-      </div>
-
       {mode === 'quick' && (
-        <form className="r-prompt" onSubmit={handleQuickSubmit}>
-          <textarea
-            ref={textareaRef}
-            value={idea}
-            onChange={(e) => setIdea(e.target.value)}
-            rows={1}
-            placeholder={quickPlaceholder}
-            disabled={loading}
-          />
-          <div className="r-prompt-action">
-            <button
-              type="button"
-              className={`r-mic${isListening ? ' is-listening' : ''}`}
-              aria-label={isListening ? 'Stop dictation' : 'Start dictation'}
-              onClick={toggleListening}
+        <>
+          <form className="r-prompt" onSubmit={handleQuickSubmit}>
+            <textarea
+              ref={textareaRef}
+              value={idea}
+              onChange={(e) => setIdea(e.target.value)}
+              rows={1}
+              placeholder={quickPlaceholder}
               disabled={loading}
-            >
-              <MicIcon />
-            </button>
-            <button
-              type="submit"
-              className="r-send"
-              aria-label="Analyze"
-              disabled={!quickValid || loading}
-            >
-              <ArrowIcon />
-            </button>
+            />
+            <div className="r-prompt-action">
+              <div className="r-prompt-action-left">
+                <ModeDropdown value={mode} onChange={handleModeChange} disabled={loading} />
+                <button
+                  type="button"
+                  className={`r-mic${isListening ? ' is-listening' : ''}`}
+                  aria-label={isListening ? 'Stop dictation' : 'Start dictation'}
+                  onClick={toggleListening}
+                  disabled={loading}
+                >
+                  <MicIcon />
+                </button>
+              </div>
+              <button
+                type="submit"
+                className="r-send"
+                aria-label="Analyze"
+                disabled={!quickValid || loading}
+              >
+                <ArrowIcon />
+              </button>
+            </div>
+            {error && <div className="r-prompt-error">{error}</div>}
+            {speechError && <div className="r-prompt-error">{speechError}</div>}
+          </form>
+
+          <div className="r-examples" aria-label="Try an example">
+            {EXAMPLES.map((example) => (
+              <button
+                key={example.label}
+                type="button"
+                className="r-example-chip"
+                onClick={() => runExample(example.text)}
+                disabled={loading}
+                title={example.text}
+              >
+                {example.label}
+              </button>
+            ))}
           </div>
-          {error && <div className="r-prompt-error">{error}</div>}
-          {speechError && <div className="r-prompt-error">{speechError}</div>}
-        </form>
+        </>
       )}
 
       {mode === 'structured' && (
@@ -331,26 +358,97 @@ export function HeroForm({ onSubmit, onAdvancedSubmit, loading, error }: HeroFor
               value={advanced.industry}
               onChange={(v) => setAdvanced((p) => ({ ...p, industry: v }))}
             />
-            <div className="r-structured-keywords-row">
-              <StructField
-                label="Keywords"
-                placeholder="invoicing, automation, freelancers, payments (separate keywords with commas)"
-                value={advanced.keywords}
-                onChange={(v) => setAdvanced((p) => ({ ...p, keywords: v }))}
-              />
-              <button
-                type="submit"
-                className="r-send"
-                aria-label="Analyze"
-                disabled={!structuredValid || loading}
-              >
-                <ArrowIcon />
-              </button>
+            <StructField
+              label="Keywords"
+              full
+              placeholder="invoicing, automation, freelancers, payments (separate keywords with commas)"
+              value={advanced.keywords}
+              onChange={(v) => setAdvanced((p) => ({ ...p, keywords: v }))}
+            />
+          </div>
+          <div className="r-structured-footer">
+            <div className="r-structured-footer-left">
+              <ModeDropdown value={mode} onChange={handleModeChange} disabled={loading} />
+              <p className="r-structured-note">
+                <span className="req">*</span> Required fields must be filled in.
+              </p>
             </div>
+            <button
+              type="submit"
+              className="r-send"
+              aria-label="Analyze"
+              disabled={!structuredValid || loading}
+            >
+              <ArrowIcon />
+            </button>
           </div>
           {error && <div className="r-prompt-error">{error}</div>}
         </form>
       )}
+    </div>
+  );
+}
+
+function ModeDropdown({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: Mode;
+  onChange: (next: Mode) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const selectedLabel = value === 'quick' ? 'Quick' : 'Advanced';
+  const otherMode: Mode = value === 'quick' ? 'structured' : 'quick';
+  const otherLabel = otherMode === 'quick' ? 'Quick' : 'Advanced';
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('mousedown', onDocClick);
+    window.addEventListener('keydown', onEsc);
+    return () => {
+      window.removeEventListener('mousedown', onDocClick);
+      window.removeEventListener('keydown', onEsc);
+    };
+  }, [open]);
+
+  return (
+    <div ref={wrapRef} className={`r-mode-dd${open ? ' is-open' : ''}`}>
+      <div className="r-mode-seg" role="group" aria-label="Mode">
+        <button
+          type="button"
+          className="r-mode-seg-current"
+          aria-expanded={open}
+          aria-label="Current mode"
+          disabled={disabled}
+          onClick={() => setOpen((v) => !v)}
+        >
+        <ModeIcon mode={value} />
+        <span>{selectedLabel}</span>
+        </button>
+        <button
+          type="button"
+          className="r-mode-seg-option"
+          aria-hidden={!open}
+          tabIndex={open && !disabled ? 0 : -1}
+          disabled={!open || disabled}
+          onClick={() => {
+            onChange(otherMode);
+            setOpen(false);
+          }}
+        >
+          <ModeIcon mode={otherMode} />
+          <span>{otherLabel}</span>
+        </button>
+      </div>
     </div>
   );
 }
