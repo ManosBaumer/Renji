@@ -276,7 +276,7 @@ function TopNav({
         style={{ background: 'transparent', border: 0, padding: 0, cursor: 'pointer' }}
         aria-label="Renji home"
       >
-        <Image src="/typeface-logo.png" alt="Renji" width={large ? 256 : 152} height={large ? 64 : 38} priority />
+        <Image src="/typeface-logo.png" alt="Renji" width={large ? 320 : 152} height={large ? 80 : 38} priority />
       </button>
 
       <nav className="r-nav-pill" aria-label="Primary">

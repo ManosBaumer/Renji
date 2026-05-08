@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Instrument_Serif, Inter, JetBrains_Mono } from 'next/font/google';
+import { DocumentScrollbar } from '@/components/DocumentScrollbar';
 import './globals.css';
 
 const inter = Inter({
@@ -42,7 +43,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       className={`${inter.variable} ${instrumentSerif.variable} ${jetbrains.variable} h-full`}
     >
-      <body className="renji-body min-h-full antialiased">{children}</body>
+      <body className="renji-body min-h-full antialiased">
+        {children}
+        <DocumentScrollbar />
+      </body>
     </html>
   );
 }

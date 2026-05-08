@@ -27,6 +27,9 @@
 
   --background: var(--bg);
   --foreground: var(--ink);
+
+  --scrollbar-thumb: rgba(84, 84, 84, 0.215);
+  --scrollbar-thumb-hover: rgba(0, 205, 123, 0.774);
 }
 
 /* ===================================================================== */
@@ -35,6 +38,79 @@
 
 html {
   scroll-behavior: smooth;
+}
+
+
+/*
+ * Document scroll: native bar hidden on fine-pointer desktops; thumb is `DocumentScrollbar` (no UA track).
+ * Touch / coarse pointer: keep native scrollbars (see media query).
+ */
+@media (hover: hover) and (pointer: fine) {
+  html {
+    scrollbar-width: none;
+  }
+
+  html,
+  body {
+    -ms-overflow-style: none;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
+/* Custom document scrollbar — fixed lane, thumb only */
+.r-doc-scrollbar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  width: 12px;
+  padding: 10px 3px;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.r-doc-scrollbar__track {
+  flex: 1;
+  width: 6px;
+  max-width: 6px;
+  min-height: 0;
+  position: relative;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.r-doc-scrollbar__thumb {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  min-height: 32px;
+  border-radius: 999px;
+  backface-visibility: hidden;
+  background: var(--scrollbar-thumb);
+  box-shadow:
+    0 0 0 1px rgba(26, 24, 20, 0.14),
+    0 1px 5px rgba(26, 24, 20, 0.12);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.r-doc-scrollbar__thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.r-doc-scrollbar__thumb:active {
+  cursor: grabbing;
 }
 
 html,
@@ -120,7 +196,7 @@ body {
 }
 
 .r-page--veil .r-hero-screen .r-brand img {
-  filter: brightness(0) invert(1);
+  filter: brightness(0) saturate(100%) invert(94%) sepia(18%) saturate(260%) hue-rotate(353deg) brightness(102%) contrast(94%);
 }
 
 .r-page--veil .r-hero-screen .r-nav-pill {
@@ -376,7 +452,7 @@ body {
 }
 
 .r-brand--lg img {
-  height: 64px;
+  height: 100px;
 }
 
 .r-brand--md img {
