@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -8,8 +8,7 @@ import type { AnalysisResult } from '@/lib/analyze';
 import type { Classification } from '@/lib/classify';
 import { HeroForm } from '@/components/HeroForm';
 import { ResultsView } from '@/components/ResultsView';
-import { GrainCanvas } from '@/components/GrainCanvas';
-import DarkVeil from '@/components/DarkVeil';
+import { SiteNav } from '@/components/SiteNav';
 
 type Stage = 'idle' | 'analyzing' | 'results' | 'error';
 
@@ -24,20 +23,13 @@ export function HomePageClient({ userEmail }: Props) {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [reanalyzing, setReanalyzing] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
-  // close user menu on outside click
   useEffect(() => {
-    if (!menuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
+    document.documentElement.dataset.renjiHomeStage = stage;
+    return () => {
+      delete document.documentElement.dataset.renjiHomeStage;
     };
-    window.addEventListener('mousedown', handler);
-    return () => window.removeEventListener('mousedown', handler);
-  }, [menuOpen]);
+  }, [stage]);
 
   const runAnalysis = useCallback(
     async (ideaText: string, classificationOverride?: Classification) => {
@@ -107,27 +99,12 @@ export function HomePageClient({ userEmail }: Props) {
     setErrorMsg('');
   };
 
-  const handleSignout = async () => {
-    await fetch('/api/auth/signout', { method: 'POST' });
-    router.push('/auth/login');
-    router.refresh();
-  };
-
   // ── Analyzing / Results states use a simpler chrome ──
   if (stage === 'analyzing') {
     return (
       <div className="renji-body" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <BgDecor variant="dashboard" />
-        <TopNav
-          activePage="analyze"
-          userEmail={userEmail}
-          onReset={handleReset}
-          onSignout={handleSignout}
-          menuOpen={menuOpen}
-          setMenuOpen={setMenuOpen}
-          menuRef={menuRef}
-          authed
-        />
+        <BgDecor />
+        <SiteNav activePage="analyze" userEmail={userEmail} onReset={handleReset} />
         <main style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 28, padding: '6vh 24px' }}>
           <Spinner />
           <p className="font-serif-italic" style={{ fontSize: 28, color: 'var(--ink)', margin: 0 }}>
@@ -145,17 +122,8 @@ export function HomePageClient({ userEmail }: Props) {
   if (stage === 'results' && result) {
     return (
       <div className="renji-body" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <BgDecor variant="dashboard" />
-        <TopNav
-          activePage="analyze"
-          userEmail={userEmail}
-          onReset={handleReset}
-          onSignout={handleSignout}
-          menuOpen={menuOpen}
-          setMenuOpen={setMenuOpen}
-          menuRef={menuRef}
-          authed
-        />
+        <BgDecor />
+        <SiteNav activePage="analyze" userEmail={userEmail} onReset={handleReset} />
         <main style={{ position: 'relative', zIndex: 10, flex: 1 }}>
           <ResultsView
             idea={idea}
@@ -170,24 +138,12 @@ export function HomePageClient({ userEmail }: Props) {
     );
   }
 
-  // ── Idle / Error: full landing layout with grainy gradient ──
+  // ── Idle / Error: landing (Dark Veil + film grain) + hero ──
   return (
     <>
-      <BgDecor variant="landing" />
-
       <div className="r-page r-page--veil">
         <div className="r-hero-screen">
-          <TopNav
-            activePage="analyze"
-            userEmail={userEmail}
-            onReset={handleReset}
-            onSignout={handleSignout}
-            menuOpen={menuOpen}
-            setMenuOpen={setMenuOpen}
-            menuRef={menuRef}
-            authed
-            large
-          />
+          <SiteNav activePage="analyze" userEmail={userEmail} onReset={handleReset} large />
 
           <main className="r-hero">
             <h1 className="r-headline">
@@ -214,122 +170,12 @@ export function HomePageClient({ userEmail }: Props) {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function BgDecor({ variant }: { variant: 'landing' | 'dashboard' }) {
-  if (variant === 'landing') {
-    return (
-      <>
-        <div className="bg-darkveil-shell" aria-hidden="true">
-          <div className="bg-darkveil-blur">
-            {/* React Bits Dark Veil — keep shader noise off; GrainCanvas owns grain */}
-            {/* YIQ hueRotate: +62 pulled the CPPN toward yellow–green; burgundy needs the other direction */}
-            <DarkVeil
-              hueShift={54}
-              noiseIntensity={0}
-              scanlineIntensity={0}
-              speed={0.42}
-              warpAmount={0.1}
-              resolutionScale={1}
-            />
-          </div>
-        </div>
-        <GrainCanvas />
-      </>
-    );
-  }
+function BgDecor() {
   return (
     <>
-      <div className="bg-orb-dashboard" aria-hidden="true" />
+      <div className="bg-orb-analyze" aria-hidden="true" />
       <div className="grain-quiet" aria-hidden="true" />
     </>
-  );
-}
-
-interface TopNavProps {
-  activePage: 'analyze' | 'dashboard';
-  userEmail?: string;
-  onReset?: () => void;
-  onSignout?: () => void;
-  menuOpen: boolean;
-  setMenuOpen: (v: boolean) => void;
-  menuRef: React.RefObject<HTMLDivElement | null>;
-  authed: boolean;
-  large?: boolean;
-}
-
-function TopNav({
-  activePage,
-  userEmail,
-  onReset,
-  onSignout,
-  menuOpen,
-  setMenuOpen,
-  menuRef,
-  authed,
-  large,
-}: TopNavProps) {
-  return (
-    <header className="r-nav">
-      <button
-        type="button"
-        className={`r-brand ${large ? 'r-brand--lg' : 'r-brand--md'}`}
-        onClick={onReset}
-        style={{ background: 'transparent', border: 0, padding: 0, cursor: 'pointer' }}
-        aria-label="Renji home"
-      >
-        <Image src="/typeface-logo.png" alt="Renji" width={large ? 320 : 152} height={large ? 80 : 38} priority />
-      </button>
-
-      <nav className="r-nav-pill" aria-label="Primary">
-        <button
-          type="button"
-          className={activePage === 'analyze' ? 'active' : ''}
-          onClick={onReset}
-        >
-          Analyze
-        </button>
-        <Link href="/dashboard" className={activePage === 'dashboard' ? 'active' : ''}>
-          Dashboard
-        </Link>
-      </nav>
-
-      {authed && userEmail ? (
-        <div ref={menuRef} style={{ position: 'relative' }}>
-          <button
-            type="button"
-            className="r-user-pill"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-          >
-            <span className="r-avatar">{userEmail.charAt(0)}</span>
-            <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {userEmail}
-            </span>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </button>
-          {menuOpen && (
-            <div className="r-user-menu" role="menu">
-              <Link href="/dashboard" role="menuitem" onClick={() => setMenuOpen(false)}>
-                My dashboard
-              </Link>
-              <div className="r-divider" />
-              <button type="button" role="menuitem" onClick={onSignout}>
-                Sign out
-              </button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <Link href="/auth/login" className="r-login-btn">
-          Log in
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M5 12h14M13 6l6 6-6 6" />
-          </svg>
-        </Link>
-      )}
-    </header>
   );
 }
 

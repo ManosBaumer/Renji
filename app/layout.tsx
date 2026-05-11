@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Instrument_Serif, Inter, JetBrains_Mono } from 'next/font/google';
 import { DocumentScrollbar } from '@/components/DocumentScrollbar';
+import { PersistentVeilBackground } from '@/components/PersistentVeilBackground';
 import './globals.css';
 
 const inter = Inter({
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${inter.variable} ${instrumentSerif.variable} ${jetbrains.variable} h-full`}
     >
       <body className="renji-body min-h-full antialiased">
+        <PersistentVeilBackground />
         {children}
         <DocumentScrollbar />
       </body>
