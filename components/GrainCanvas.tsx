@@ -210,7 +210,7 @@ export function GrainCanvas() {
         zIndex: 6,
         pointerEvents: 'none',
         display: 'block',
-        opacity: 0.82,
+        opacity: 0.38,
         mixBlendMode: 'overlay',
       }}
     />
